@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        AWS_DEFAULT_REGION     = 'us-east-1'       // Primary region
-        SECONDARY_REGION       = 'us-west-2'       // Secondary region
+        AWS_DEFAULT_REGION     = 'us-east-1'
+        SECONDARY_REGION       = 'us-west-2'
         TERRAFORM_DIR          = 'terraform'
         TF_VAR_S3_PRIMARY_PREFIX   = 'primary-vr'
         TF_VAR_S3_SECONDARY_PREFIX = 'secondary-vr'
@@ -41,13 +41,17 @@ pipeline {
 
         stage('Sync Web Content to S3') {
             steps {
-                sh 'jenkins/scripts/s3-sync.sh'
+                dir("${env.TERRAFORM_DIR}") {
+                    sh './scripts/s3-sync.sh'
+                }
             }
         }
 
         stage('Trigger Failover Check') {
             steps {
-                sh 'jenkins/scripts/failover.sh'
+                dir("${env.TERRAFORM_DIR}") {
+                    sh './scripts/failover.sh'
+                }
             }
         }
     }
@@ -57,9 +61,8 @@ pipeline {
             echo 'Deployment completed successfully!'
         }
         failure {
-            mail to: 'vimalgrm@gmail.com',
-                 subject: "DR Pipeline Failed: ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
-                 body: "Check Jenkins console output for failure details."
+            echo "Pipeline failed. Check console output."
+            // mail step can be enabled if SMTP is configured
         }
     }
 }
